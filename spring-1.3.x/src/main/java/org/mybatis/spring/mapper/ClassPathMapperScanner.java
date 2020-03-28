@@ -202,9 +202,26 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
       // the mapper interface is the original class of the bean
       // but, the actual class of the bean is MapperFactoryBean
+      /**
+       * 由于接下来将设置 bean 的实现类为 MapperFactoryBean
+       * MapperFactoryBean 包含一个 Class 属性，这个属性保存了扫描到的 mapper 这个接口
+       * 需要将这个 mapper 传给 MapperFactoryBean，spring 实例化 MapperFactoryBean 的时候通常使用 无参构造方法
+       * 因此，我们如果希望将 mapper 传给 MapperFactoryBean 时，需要添加一个含参构造方法，将 mapper 传给 MapperFactoryBean
+       *
+       * 下面就是增加一个构造方法，参数为 Class，但，这个 Class 只能时 扫描到的 mapper 类型
+       */
       definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName()); // issue #59
       definition.setBeanClass(this.mapperFactoryBean.getClass());
 
+      /**
+       * BeanDefinition 的 propertyValues 是给属性赋值的
+       * 也就是说，如果 bean 包含一个名为 xyz 的参数，且 BeanDefinition 包含有叫 xyz 的参数名和参数值，<xyz, value>
+       * 那么，在 bean 实例化的时候，就会将 bean 的 xyz 赋值给 BeanDefinition 预存的值
+       *  bean.xyz = beanDefinition.xyz.value
+       *
+       * MapperFactoryBean 包含一个叫 addToConfig 的参数
+       * 这里为 MapperFactoryBean 预先设定一个属性值
+       */
       definition.getPropertyValues().add("addToConfig", this.addToConfig);
 
       boolean explicitFactoryUsed = false;
@@ -240,6 +257,10 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
   }
 
   /**
+   * 重写了 spring 扫描器方法
+   *
+   * 表明：如果 AnnotatedBeanDefinition 符合下面定义的规范，那么 mybatis 就认为它是一个 mapper
+   *
    * {@inheritDoc}
    */
   @Override
